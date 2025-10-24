@@ -1,4 +1,5 @@
 import json
+import logging
 
 from django.db import connection
 from django.urls import reverse_lazy
@@ -14,6 +15,8 @@ from rest_framework.exceptions import ParseError
 
 from mbm import forms
 from mbm.models import MellowRoute, fetchall
+
+logger = logging.getLogger(__name__)
 
 
 # osm2pgrouting tag IDs for indexing specific types of streets. For docs, see:
@@ -53,6 +56,11 @@ class Route(APIView):
     renderer_classes = [JSONRenderer]
 
     def get(self, request):
+        logger.info(
+            f"Route.get: source={request.GET.get('source')}, "
+            f"target={request.GET.get('target')}, enable_v2={request.GET.get('enable_v2')}"
+        )
+
         source_coord = self.get_coord_from_request(request, 'source')
         source_vertex_id = self.get_nearest_vertex_id(source_coord)
 
@@ -105,6 +113,10 @@ class Route(APIView):
             raise ParseError('No vertex found near point %s' % ','.join(coord))
 
     def get_route(self, source_vertex_id, target_vertex_id, enable_v2=False):
+        logger.info(
+            f"Route.get_route: source_vertex_id={source_vertex_id}, target_vertex_id= {target_vertex_id}, enable_v2={enable_v2}"
+        )
+        
         with connection.cursor() as cursor:
             cursor.execute(f"""
                 SELECT
@@ -156,10 +168,19 @@ class Route(APIView):
             """, [source_vertex_id, target_vertex_id])
             rows = fetchall(cursor)
 
+        num_ways = len(rows)
+        logger.info(f"Route query returned {num_ways} chicago_ways")
+        
+        if num_ways == 0:
+            logger.warning("Route could not be calculated")
+        
         # Calculate total distance in miles and time in minutes based on
         # the total length of the route in meters
         dist_in_meters = sum(row['length_m'] for row in rows)
         distance, time = self.format_distance(dist_in_meters)
+        
+        if num_ways > 0:
+            logger.info(f"Route distance: {distance}, estimated time: {time}")
 
         return {
             'type': 'FeatureCollection',
