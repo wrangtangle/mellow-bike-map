@@ -248,3 +248,47 @@ a {
 .highlight-osm-way {
   filter: drop-shadow(0 0 6px currentColor) drop-shadow(0 0 10px currentColor);
 }
+
+/* Mini map styles */
+.mini-map-container {
+  flex-shrink: 0;
+  width: 120px;
+  height: 120px;
+  margin-right: 12px;
+  border: 2px solid #ddd;
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  background: white;
+}
+
+.mini-map-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 768px) {
+  .mini-map-container {
+    width: 80px;
+    height: 80px;
+    margin-right: 8px;
+  }
+  
+  .mini-map-svg text {
+    font-size: 8px !important;
+  }
+}
+
+/* Ensure direction items wrap properly with mini maps */
+.direction-item {
+  display: flex;
+  align-items: flex-start;
+  flex-wrap: nowrap;
+}
+
+.direction-item .direction-text {
+  flex: 1;
+  min-width: 0; /* Allow text to shrink if needed */
+}

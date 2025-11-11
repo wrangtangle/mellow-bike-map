@@ -61,19 +61,21 @@ class Route(APIView):
 
     def get(self, request):
         source_coord = self.get_coord_from_request(request, 'source')
-        source_vertex_id = self.get_nearest_vertex_id(source_coord)
-
         target_coord = self.get_coord_from_request(request, 'target')
+        
+        source_vertex_id = self.get_nearest_vertex_id(source_coord)
         target_vertex_id = self.get_nearest_vertex_id(target_coord)
 
         enable_v2 = request.GET.get("enable_v2", False) == "true"
 
+        route_data = self.get_route(source_vertex_id, target_vertex_id, enable_v2)
+        
         return Response({
             'source': source_coord,
             'target': target_coord,
             'source_vertex_id': source_vertex_id,
             'target_vertex_id': target_vertex_id,
-            'route': self.get_route(source_vertex_id, target_vertex_id, enable_v2)
+            'route': route_data
         })
 
     def get_coord_from_request(self, request, key):
@@ -115,6 +117,7 @@ class Route(APIView):
         with connection.cursor() as cursor:
             cursor.execute(f"""
                 SELECT
+                    way.gid,
                     way.name,
                     way.length_m,
                     ST_AsGeoJSON(oriented.the_geom) AS geometry,
@@ -190,13 +193,13 @@ class Route(APIView):
         # Calculate total distance in miles and time in minutes based on
         # the total length of the route in meters
         dist_in_meters = sum(row['length_m'] for row in rows)
-        distance, time = self.format_distance(dist_in_meters)
+        distance, time_str = self.format_distance(dist_in_meters)
 
         return {
             'type': 'FeatureCollection',
             'properties': {
                 'distance': distance,
-                'time': time,
+                'time': time_str,
             },
             'features': [
                 {
@@ -242,9 +245,9 @@ class Route(APIView):
         time_in_min = dist_in_mi / mi_per_min
         formatted_time = '<1' if time_in_min < 1 else str(round(time_in_min))
         time_unit_str = 'minute' if formatted_time in ['<1', '1'] else 'minutes'
-        time = f'{formatted_time} {time_unit_str}'
+        time_str = f'{formatted_time} {time_unit_str}'
 
-        return distance, time
+        return distance, time_str
 
 
 class OsmWay(APIView):

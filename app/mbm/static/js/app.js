@@ -3,6 +3,7 @@ import autocomplete from './autocomplete.js'
 import Geolocation from './geolocation.js'
 import { getUserLocations, getUserPreferences, saveUserPreferences } from './storage.js'
 import { directionsList, describeUnnamedStreet } from './turnbyturn.js'
+import { generateMiniMapSVG } from './minimap.js'
 // The App class holds top level state and map related methods that other modules
 // need to call, for example to update the position of markers.
 export default class App {
@@ -655,8 +656,22 @@ export default class App {
         directionText += " until you reach your destination"
       }
       
+      // Generate mini map SVG with context from previous direction
+      const prevDirection = index > 0 ? directions[index - 1] : null
+      const miniMapSVG = generateMiniMapSVG(
+        this.routeData, 
+        direction, 
+        prevDirection, 
+        color, 
+        this.getLineColor.bind(this),
+        index === 0
+      )
+      
       // Build the list item with clickable class and color data
-      let listItemHtml = `<li class="direction-item" data-direction-index="${index}" data-color="${color}"><span class="direction-icon-wrapper">${icon}</span><span class="direction-text">${directionText}`
+      let listItemHtml = `<li class="direction-item" data-direction-index="${index}" data-color="${color}">
+        <div class="mini-map-container">${miniMapSVG}</div>
+        <span class="direction-icon-wrapper">${icon}</span>
+        <span class="direction-text">${directionText}`
       
       // Add debug information if enabled
       if (debugMode) {
