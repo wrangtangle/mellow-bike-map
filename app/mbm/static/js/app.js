@@ -298,15 +298,22 @@ export default class App {
   // is supplied, and markerName is "source" or "target", also update the associated
   // <input> to show addressString.
   setMarkerLocation(markerName, lat, lng, addressString = '') {
+    const markerIcon = this.getMarkerIcon(markerName)
+
     // Create the marker if it doesn't exist
     if (!this.markers[markerName]) {
-      this.addMarker(markerName, L.marker([lat, lng]))
+      const markerOptions = markerIcon ? { icon: markerIcon } : {}
+      this.addMarker(markerName, L.marker([lat, lng], markerOptions))
     } else {
       // Move it to the new location if it does
       this.markers[markerName].setLatLng({
         lat: lat,
         lng: lng
       })
+
+      if (markerIcon) {
+        this.markers[markerName].setIcon(markerIcon)
+      }
     }
 
     if (this.directionsFormElements[markerName]) {
@@ -323,6 +330,19 @@ export default class App {
 
       return this.markers[markerName]
     }
+  }
+
+  getMarkerIcon(markerName) {
+    if (markerName !== 'target') {
+      return null
+    }
+
+    return L.divIcon({
+      className: 'leaflet-div-icon finish-marker-icon',
+      iconSize: [15, 15],
+      iconAnchor: [8, 8],
+      popupAnchor: [0, -8]
+    })
   }
 
   zoomToLocation(lat, lng) {
