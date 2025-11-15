@@ -458,7 +458,8 @@ export default class App {
         // Lower opacity on non-route street colors
         this.allRoutesLayer.setStyle({ opacity: 0.3 })
         this.map.fitBounds(this.routeLayer.getBounds())
-        this.showRouteEstimate(data.route.properties.distance, data.route.properties.time)
+        const { distance, time, major_streets: majorStreets = [] } = data.route.properties
+        this.showRouteEstimate(distance, time, majorStreets)
       }).fail((jqxhr, textStatus, error) => {
         const err = textStatus + ': ' + error
         alert('Request failed: ' + err)
@@ -539,14 +540,42 @@ export default class App {
     this.markers[name] = marker
   }
 
-  showRouteEstimate(distance, time) {
-    this.$routeEstimate.html(`<strong>${time}</strong> (${distance})`)
+  showRouteEstimate(distance, time, majorStreets = []) {
+    const viaText = this.formatViaText(majorStreets)
+    const suffix = viaText ? ` ${viaText}` : ''
+    this.$routeEstimate.html(`<strong>${time}</strong> (${distance})${suffix}`)
     this.$routeEstimate.show()
   }
 
   hideRouteEstimate() {
     this.$routeEstimate.hide()
     this.$routeEstimate.html('')
+  }
+
+  formatViaText(majorStreets = []) {
+    if (!Array.isArray(majorStreets)) {
+      return ''
+    }
+
+    const streets = majorStreets
+      .map((street) => typeof street === 'string' ? street.trim() : '')
+      .filter((street) => street.length > 0)
+
+    if (streets.length === 0) {
+      return ''
+    }
+
+    if (streets.length === 1) {
+      return `via ${streets[0]}`
+    }
+
+    if (streets.length === 2) {
+      return `via ${streets[0]} and ${streets[1]}`
+    }
+
+    const lastStreet = streets[streets.length - 1]
+    const initial = streets.slice(0, -1).join(', ')
+    return `via ${initial}, and ${lastStreet}`
   }
 
   getDirectionIcon(maneuver, color) {

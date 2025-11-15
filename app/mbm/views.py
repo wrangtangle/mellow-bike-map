@@ -14,7 +14,7 @@ from rest_framework.exceptions import ParseError
 
 from mbm import forms
 from mbm.models import MellowRoute, fetchall
-from mbm.directions import directions_list
+from mbm.directions import directions_list, major_streets
 from mbm.routing import calculate_route
 
 
@@ -104,12 +104,14 @@ class Route(APIView):
     def get_route(self, source_vertex_id, target_vertex_id, enable_v2=False):
         features, distance, time = calculate_route(source_vertex_id, target_vertex_id, enable_v2)
         directions = directions_list(features)
+        via_streets = major_streets(directions)
 
         return {
             'type': 'FeatureCollection',
             'properties': {
                 'distance': distance,
                 'time': time,
+                'major_streets': via_streets,
             },
             'features': features,
             'directions': directions,

@@ -1,3 +1,4 @@
+from collections import defaultdict
 from typing import TypedDict, Dict, List, Optional, Any
 from mbm.types import GeoJSONFeature, RouteProperties
 
@@ -209,3 +210,37 @@ def _merge_with_previous_direction(
         previous_direction['osmData'] = osm_data
         previous_direction['effectiveName'] = effective_name
 
+
+def major_streets(
+    directions: List[Direction],
+    min_fraction: float = 0.2,
+    limit: int = 3,
+) -> List[str]:
+    """Return up to `limit` street names that cover at least `min_fraction` of the route."""
+    if not directions:
+        return []
+
+    total_distance = sum(max(direction.get('distance', 0.0), 0.0) for direction in directions)
+    if total_distance <= 0:
+        return []
+
+    threshold = total_distance * min_fraction
+    distance_by_street: Dict[str, float] = defaultdict(float)
+
+    for direction in directions:
+        street_name = direction.get('name') or direction.get('effectiveName')
+        if not street_name:
+            continue
+        distance = direction.get('distance') or 0.0
+        if distance <= 0:
+            continue
+        distance_by_street[street_name] += distance
+
+    qualifying = [
+        (street, dist)
+        for street, dist in distance_by_street.items()
+        if dist >= threshold
+    ]
+
+    qualifying.sort(key=lambda item: item[1], reverse=True)
+    return [street for street, _ in qualifying[:limit]]

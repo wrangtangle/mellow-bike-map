@@ -7,6 +7,7 @@ from mbm.directions import (
     _heading_to_english_maneuver,
     _should_merge_segments,
     _merge_with_previous_direction,
+    major_streets,
 )
 
 
@@ -315,6 +316,7 @@ class TestMergeWithPreviousDirection:
         assert directions[0]['osmData'] == {'osm_id': 2, 'osm_tags': {'highway': 'service'}}
         assert directions[0]['effectiveName'] == 'an access road'
 
+
     def test_multiple_merges(self):
         directions = [{
             'name': 'Main Street',
@@ -516,3 +518,31 @@ class TestDirectionsList:
             segment['featureIndex'] for segment in second_direction['directionSegments']
         ]
         assert second_segment_indices == [2, 3]
+
+
+class TestMajorStreets:
+    def test_returns_sorted_major_streets_above_threshold(self):
+        directions: List[Direction] = [
+            {'name': 'Main Street', 'effectiveName': 'Main Street', 'distance': 600.0},
+            {'name': 'Oak Avenue', 'effectiveName': 'Oak Avenue', 'distance': 200.0},
+            {'name': 'Pine Road', 'effectiveName': 'Pine Road', 'distance': 150.0},
+            {'name': 'Ash Street', 'effectiveName': 'Ash Street', 'distance': 50.0},
+        ]
+
+        assert major_streets(directions) == ['Main Street', 'Oak Avenue', 'Pine Road']
+
+    def test_uses_effective_name_when_name_missing(self):
+        directions: List[Direction] = [
+            {'name': None, 'effectiveName': 'a park path', 'distance': 120.0},
+            {'name': 'Main Street', 'effectiveName': 'Main Street', 'distance': 880.0},
+        ]
+
+        assert major_streets(directions, min_fraction=0.1) == ['Main Street', 'a park path']
+
+    def test_limits_results_to_three_entries(self):
+        directions: List[Direction] = [
+            {'name': f'Street {i}', 'effectiveName': f'Street {i}', 'distance': 150.0}
+            for i in range(1, 6)
+        ]
+
+        assert major_streets(directions, min_fraction=0.05) == ['Street 1', 'Street 2', 'Street 3']
